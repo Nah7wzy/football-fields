@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Web site created using create-react-app" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+ 
+  <title>Football Fields</title>
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.22/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.22/"></script>
+
+  <script>
+    require(["esri/config", "esri/WebMap",
+      "esri/views/MapView",
+      "esri/widgets/ScaleBar",
+      "esri/widgets/Legend",
+      "esri/Graphic",
+      "esri/rest/route",
+      "esri/rest/support/RouteParameters",
+      "esri/rest/support/FeatureSet",
+      "esri/widgets/Locate",
+      "esri/widgets/Search",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/Editor"], function (esriConfig, WebMap, MapView, ScaleBar, Legend, Graphic, route, RouteParameters, FeatureSet,
+        Locate, Search, FeatureLayer, Editor) {
+
+      esriConfig.apiKey = "AAPK56e894ec66ff44f98ac3628433924bc2SBJbb-PoCB1Ye7prP9hpJB9fFVxlEKCsgFsLtHF69xGcvNKOkYksi_GFZRPB5CnG";
+
+
+      const webmap = new WebMap({
+        portalItem: {
+          id: "94b298ef098a4525b0f64e6d7e356c85"
+        },
+      });
+
+
+      const view = new MapView({
+        map: webmap,
+
+        container: "viewDiv" // Div element
+      });
+
+      ////////////////////////////////////////////////////////
+
+      //Add Search Functionality
+      const search = new Search({  //Add Search widget
+        view: view
+      });
+      view.ui.add(search, "top-right");
+
+
+      //Add feature adding and editing
+      const editor = new Editor({
+        view: view
+      });
+      view.ui.add(editor, "top-right");
+
+
+      //Display user location
+      const locate = new Locate({
+        view: view,
+        useHeadingEnabled: false,
+        goToOverride: function (view, options) {
+          options.target.scale = 1800;
+          return view.goTo(options.target);
+        }
+      });
+      view.ui.add(locate, "bottom-right");
+
+
+      //Add displaying route function
+      const routeUrl = "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World";
+
+      view.on("click", function (event) {
+        if (view.graphics.length === 0) {
+          addGraphic("origin", event.mapPoint);
+        } else if (view.graphics.length === 1) {
+          addGraphic("destination", event.mapPoint);
+
+          getRoute();
+        } else {
+          view.graphics.removeAll();
+          // addGraphic("origin",event.mapPoint);
+        }
+      });
+
+      function addGraphic(type, point) {
+        const graphic = new Graphic({
+          symbol: {
+            type: "simple-marker",
+            color: (type === "origin") ? "white" : "black",
+            size: "8px"
+          },
+          geometry: point
+        });
+        view.graphics.add(graphic);
+      }
+
+      function getRoute() {
+        const routeParams = new RouteParameters({
+          stops: new FeatureSet({
+            features: view.graphics.toArray()
+          }),
+
+        });
+        route.solve(routeUrl, routeParams)
+          .then(function (data) {
+            data.routeResults.forEach(function (result) {
+              result.route.symbol = {
+                type: "simple-line",
+                color: [5, 150, 255],
+                width: 3
+              };
+              view.graphics.add(result.route);
+            });
+
+          })
+      }
+
+    });
+  </script>
+
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  
+  <div id="viewDiv"></div>
+
+ 
+</body>
+
+</html>
